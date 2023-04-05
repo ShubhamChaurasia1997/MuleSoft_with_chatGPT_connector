@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:openai="http://www.mulesoft.org/schema/mule/openai" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/openai http://www.mulesoft.org/schema/mule/openai/current/mule-openai.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+  <openai:config name="OpenAI_Config" doc:name="OpenAI Config" doc:id="abadecc9-095a-4116-b433-b287f7d317a9" >
+    <openai:connection apiKey="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" />
+  </openai:config>
+  <http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="a6cb156e-eb64-4200-9f29-2d845138ac3e" >
+    <http:listener-connection host="0.0.0.0" port="8081" />
+  </http:listener-config>
+  <flow name="openai-chat-connectorFlow" doc:id="be4ad78c-611c-4d74-a4fe-a5234f956e53" >
+    <http:listener doc:name="POST:Listener" doc:id="a9240c49-6c35-4174-ae8e-4cd3473b6191" config-ref="HTTP_Listener_config" path="/chat"/>
+    <logger level="INFO" doc:name="Start Logger" doc:id="5499f532-4ab3-4a34-8d2e-109c06abfad7" message="#[payload]" />
+    <openai:create-chat-completion doc:name="Create chat completion" doc:id="bade69f4-9b57-471c-82c7-ac294d7fca1e" config-ref="OpenAI_Config" model="gpt-3.5-turbo"/>
+    <ee:transform doc:name="Chat Completion Obj Output to JSON" doc:id="a941e31b-de14-4ff8-8538-5aeb6acdc973" >
+      <ee:message >
+        <ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+      </ee:message>
+    </ee:transform>
+    <logger level="INFO" doc:name="End Logger" doc:id="5eaf36ce-0b7f-4e0f-9bfd-df7f976e1af6" message="#[payload]"/>
+  </flow>
+  <flow name="openai-imageUrl-connectorFlow" doc:id="47774fdf-c3eb-40dc-a042-f84326b5df69" >
+    <http:listener doc:name="Listener" doc:id="27d760fd-ac55-4937-9914-65695a90428f" config-ref="HTTP_Listener_config" path="/imageurl"/>
+    <openai:create-image-url doc:name="Create image url" doc:id="9f6b6962-43ce-4de7-9e3e-d80497fc7aa2" config-ref="OpenAI_Config" n="#[payload.n]" size="#[payload.size]">
+      <openai:prompt ><![CDATA[#[payload.prompt]]]></openai:prompt>
+    </openai:create-image-url>
+    <ee:transform doc:name="Transform Message" doc:id="4225cc02-ee1f-483f-8905-52b077b3bb75" >
+      <ee:message >
+        <ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+      </ee:message>
+    </ee:transform>
+  </flow>
+  <flow name="openai-imageFile-connectorFlow" doc:id="a773716e-e900-4570-8f76-01b31c45713f" initialState="stopped">
+    <http:listener doc:name="Listener" doc:id="b99913b4-9387-4a78-952c-ac1110e9386a" config-ref="HTTP_Listener_config" path="/imagefile"/>
+    <openai:create-image-file doc:name="Create image file" doc:id="de151526-4c29-471a-b304-ae3e595352fd" config-ref="OpenAI_Config" n="#[payload.n]" size="#[payload.size]">
+      <openai:prompt ><![CDATA[#[payload.prompt]]]></openai:prompt>
+    </openai:create-image-file>
+  </flow>
+</mule>
